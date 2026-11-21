@@ -5,6 +5,7 @@ from data import load_pokemons
 ctk.set_appearance_mode("dark")  # "light", "dark" or "system"
 ctk.set_default_color_theme("App/pokedex_theme.json")  # "blue", "dark-blue", "green" or "gold"
 
+# Bloc principale - lancement application
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -20,7 +21,7 @@ class App(ctk.CTk):
         
 
 class MainView(ctk.CTkFrame):
-    """navigation bar with buttons and the area where one page at a time is shown"""
+    """Barre de navigation entre différentes pages avec une seule visible à la fois"""
 
     def __init__(self, master, app, fg_color="transparent"):
         super().__init__(master)
@@ -33,7 +34,7 @@ class MainView(ctk.CTkFrame):
         self.menubar.grid(row=0, column=0, sticky="ew")
 
 
-        # Liste des pages crées en une fois mais seule une est visible
+        # Liste des pages
         self.pages = {
             "home" : HomePage(self, app),
             "infos" : InfoPage(self,app),
@@ -45,6 +46,7 @@ class MainView(ctk.CTkFrame):
             page.grid(row=1, column=0,sticky="nsew")
             page.grid_remove()
 
+        # Boutons de navigations
         self.nav_buttons = {}
         for column, (name,text) in enumerate([("home", "Home"), ("infos", "Infos"), ("prediction","Prediction"), ("scan","Scan")]):
             button = ctk.CTkButton(self.menubar, text=text, width=100, height=30, corner_radius=0, command=lambda o=name: self.show_page(o))
@@ -55,6 +57,7 @@ class MainView(ctk.CTkFrame):
         self.show_page("home")
         
     def show_page(self, name):
+        # Affichage page selectionnée
         if name == self.current:
             return
         if self.current is not None:

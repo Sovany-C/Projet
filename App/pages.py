@@ -9,8 +9,7 @@ TYPE_COLORS = {
     "Steel": "#B8B8D0", "Fairy": "#EE99AC",
 }
 
-PAR_PAGE = 18
-
+PAR_PAGE = 18 #Nombre de pokémons par Page
 
 def badge_type(master, type_):
     """Petit badge arrondi coloré pour un type."""
@@ -19,13 +18,13 @@ def badge_type(master, type_):
                         font=("Arial", 11, "bold"))
 
 class HomePage(ctk.CTkFrame):
+    """Page principale : affichage de la liste des pokémons et fonction de trie"""
     def __init__(self, master, app):
         super().__init__(master, fg_color="transparent")
         self.app = app
         self.filtres = list_conv(app.pokemons)    # liste actuellement affichée
         self.page = 0
         
-
         self.grid_columnconfigure(0, weight=1)   
         self.grid_rowconfigure(1, weight=1)
 
@@ -48,10 +47,11 @@ class HomePage(ctk.CTkFrame):
         self.affiche_page()
     
     def affiche_page(self):
+        """Affichage des N pokémons de la page"""
         debut = self.page * PAR_PAGE
-        if (debut + PAR_PAGE <= len(self.filtres)) : # Fonctionne pas car je détruit pas les éléments en plus de la grille
+        if (debut + PAR_PAGE <= len(self.filtres)) :
             self.contenu_frame.afficher(self.filtres[debut:debut + PAR_PAGE])
-        else :
+        else : # Permet d'afficher uniquement le nombre nécessaire de widget sur la dernière page
             self.contenu_frame.afficher(self.filtres[debut:debut + (len(self.filtres)-debut)])
 
         total = max(1, -(-len(self.filtres) // PAR_PAGE))     # division arrondie au-dessus
@@ -61,12 +61,13 @@ class HomePage(ctk.CTkFrame):
         #self.btn_suiv.configure(state="normal" if self.page < total - 1 else "disabled")
     
     def appliquer_filtre(self, nom, generation, type, legendaire):
+        """Fonction de trie"""
         resultat = filter(self.app.pokemons, nom, generation, type, legendaire)
         self.filtres = list_conv(resultat)
         self.page = 0
         self.affiche_page()
 
-
+    # Navigation entre les pages
     def precedent(self):
         self.page -= 1
         if self.page < 0:
@@ -80,6 +81,7 @@ class HomePage(ctk.CTkFrame):
         self.affiche_page()
 
     def open_pokemon(self,pokemon):
+        """Ouverture page avec informations complémentaires sur le pokémon"""
         print(pokemon["name"])
 
 
@@ -87,7 +89,7 @@ class HomePage(ctk.CTkFrame):
         print("Home")
 
     
-
+# Pages à définir
 class InfoPage(ctk.CTkFrame):
     def __init__(self, master, app):
         super().__init__(master, fg_color="transparent")
@@ -126,6 +128,7 @@ class ScanPage(ctk.CTkFrame):
 # Ensemble des sous-frames
 
 class Search_frame(ctk.CTkFrame):
+    """Barre de recherche de la page principale"""
     def __init__(self, master, on_search):
         super().__init__(master, fg_color= ["#DC0A2D", "#bdffff"], corner_radius=0, height=30)
         self.grid_columnconfigure((0,1,2,3,4,5), weight=1)
@@ -150,6 +153,7 @@ class Search_frame(ctk.CTkFrame):
         self.check_leg.grid(row=0, column=4, pady=10, padx=10)
 
     def search_pokemon(self):
+        # Récupération données nécessaire à la recherche
         pokemon_name = self.entry.get().strip()
         generation_filter = self.generation_filter.get()
         type_filter = self.type_filter.get()
@@ -157,27 +161,40 @@ class Search_frame(ctk.CTkFrame):
 
         self.on_search(pokemon_name, generation_filter, type_filter, legendary_filter)
 
-        if not pokemon_name:
-            print("Please enter a Pokemon name.")
-        else:
-            print(f"Searching for Pokemon: {pokemon_name}")
+        # if not pokemon_name:
+        #     print("Please enter a Pokemon name.")
+        # else:
+        #     print(f"Searching for Pokemon: {pokemon_name}")
 
-        print(f"Generation filter: {generation_filter}")
-        print(f"Type filter: {type_filter}")
-        print(f"Legendary filter: {legendary_filter}")
+        # print(f"Generation filter: {generation_filter}")
+        # print(f"Type filter: {type_filter}")
+        # print(f"Legendary filter: {legendary_filter}")
 
 
 class Contenu_frame(ctk.CTkScrollableFrame):
+    """Cadre qui contient l'ensemble des widgets des pokémons"""
     def __init__(self, master,on_select=None):
         super().__init__(master, corner_radius=0)
         self.on_select = on_select
+        self.rows = []
         self.grid_columnconfigure(0, weight=1)
 
-    def afficher(self,pokemons):
-        for widget in self.winfo_children():
-            widget.destroy()
-        for i, p in enumerate(pokemons):
-            PokemonRow(self, p, on_click=self.on_select).grid(row=i, column=0, sticky="ew", padx=10, pady=3)
+    def afficher(self, pokemons): # Affichage des pokémons nécessaires
+        # Crée seulement les barres qui manquent
+        while len(self.rows) < len(pokemons):
+            row = PokemonRow(self, on_click=self.on_select)
+            row.grid(row=len(self.rows), column=0, sticky="ew", padx=10, pady=3)
+            self.rows.append(row)
+
+        # Réutilise les barres existantes et met à jour le contenu
+        for i, row in enumerate(self.rows):
+            if i < len(pokemons):
+                row.maj(pokemons[i])
+                row.grid()                     # réaffiche si elle était cachée
+            else:
+                row.grid_remove()              # cache les barres en trop
+
+        self._parent_canvas.yview_moveto(0)    # remonte en haut à chaque nouvelle page
 
 
 class PokemonRow(ctk.CTkFrame):
@@ -186,29 +203,53 @@ class PokemonRow(ctk.CTkFrame):
     COULEUR = "#999697"
     COULEUR_SURVOL = "#3F3F3F"
 
-    def __init__(self, master, pokemon, on_click=None):
+    def __init__(self, master, on_click=None):
         super().__init__(master, height=30, corner_radius=8, fg_color="#999697")
 
         self.on_click = on_click
-        self.pokemon = pokemon
 
         self.grid_columnconfigure(0,weight=1)
 
-        nameLabel = ctk.CTkLabel(self, text=f"# {pokemon["id"]} {pokemon["name"]}", anchor="w")
-        nameLabel.grid(row=0,column=0,padx=15, sticky="w")
+        self.nameLabel = ctk.CTkLabel(self, text="", anchor="w")
+        self.nameLabel.grid(row=0,column=0,padx=15, sticky="w")
 
         types = ctk.CTkFrame(self,fg_color="transparent")
         types.grid(row=0,column=1,padx=10)
-        for t in (pokemon["type1"], pokemon["type2"]):
-            if t:
-                badge_type(types,t).pack(side="left",padx=2)
+        self.badge1 = badge_type(types, "")
+        self.badge1.grid(row=0, column=0, padx=2)
+        self.badge2 = badge_type(types, "")
+        self.badge2.configure(fg_color="transparent")
+        self.badge2.grid(row=0, column=1, padx=2)
+        
 
-        generationLabel = ctk.CTkLabel(self,text=f"Gen {pokemon["generation"]}", anchor="w")
-        generationLabel.grid(row=0,column=2,padx=15, sticky="w")
+        self.genLabel = ctk.CTkLabel(self,text="", anchor="w")
+        self.genLabel.grid(row=0,column=2,padx=15, sticky="w")
 
         self._lier(self)
 
+    def maj(self, pokemon):
+        """Change le contenu sans recréer de widget"""
+        self.pokemon = pokemon
+
+        if self.nameLabel.cget("text") != pokemon["name"]:
+            self.nameLabel.configure(text=pokemon["name"])
+
+        if self.badge1.cget("text") != pokemon["type1"]:
+            self.badge1.configure(text=pokemon["type1"], fg_color=TYPE_COLORS.get(pokemon["type1"], "#999697"))
+        
+        if pokemon["type2"]:
+            if self.badge2.cget("text") != pokemon["type2"]:
+                self.badge2.configure(text=pokemon["type2"],
+                                      fg_color=TYPE_COLORS.get(pokemon["type2"], "#999697"))
+        else:
+            if self.badge2.cget("text") != "":
+                self.badge2.configure(text="", fg_color="transparent") # Rend invisible la badge
+        gen = f"Gen {pokemon['generation']}"
+        if self.genLabel.cget("text") != gen:
+            self.genLabel.configure(text=gen)
+
     def _lier(self,widget):
+        # Lier l'ensemble des éléments en une barre clickable
         widget.bind("<Button-1>", self._click)
         widget.bind("<Enter>", lambda e: self.configure(fg_color=self.COULEUR_SURVOL), add="+")
         widget.bind("<Leave>", lambda e: self.configure(fg_color=self.COULEUR), add="+")

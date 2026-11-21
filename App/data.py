@@ -5,6 +5,7 @@ COLONNES = {
     "HP": "hp", "Attack": "attack", "Defense": "defense",
     "Sp. Atk": "sp_atk", "Sp. Def": "sp_def", "Speed": "speed",
     "Generation": "generation", "Legendary": "legendary",
+    "Cluster" : "cluster"
 }
 
 def load_pokemons(path="pokemon.csv"):
