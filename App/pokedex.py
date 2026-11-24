@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from pages import HomePage,InfoPage,PredictionPage,ScanPage
-from data import load_pokemons
+from data import load_pokemons, cluster
 
 ctk.set_appearance_mode("dark")  # "light", "dark" or "system"
 ctk.set_default_color_theme("App/pokedex_theme.json")  # "blue", "dark-blue", "green" or "gold"
@@ -14,6 +14,7 @@ class App(ctk.CTk):
 
         # Chargement des données dans app
         self.pokemons = load_pokemons("pokemon.csv")
+        self.pokemons = cluster(self.pokemons)
 
         self.main_view = MainView(self, app=self)
         self.main_view.pack(fill="both", expand = True)

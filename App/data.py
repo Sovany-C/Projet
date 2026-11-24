@@ -1,4 +1,7 @@
 import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+
 
 COLONNES = {
     "#": "id", "Name": "name", "Type 1": "type1", "Type 2": "type2",
@@ -16,7 +19,7 @@ def load_pokemons(path="pokemon.csv"):
     df["type2"] = df["type2"].fillna("")
     return df
 
-def filter(df,nom="",generation="All",type="All",legendaire=False): #Valeur par défaut
+def filter(df,nom="",generation="All",type="All",legendaire=False,gr="All"): #Valeur par défaut
     """Filtrage selon paramètres en entrée"""
 
     masque = pd.Series(True, index=df.index) # applique une valeur True à tout les éléments (pokémons)
@@ -30,6 +33,8 @@ def filter(df,nom="",generation="All",type="All",legendaire=False): #Valeur par 
         masque &= (df["type1"] == type) | (df["type2"] == type)
     if legendaire:
         masque &= df["legendary"]
+    if gr != "All":
+        masque &= df["cluster"] == int(gr)
     return df[masque]
 
 def list_conv(df):
@@ -43,4 +48,23 @@ if __name__ == "__main__":
     print(len(tous),"Pokémon chargés")
     feu = list_conv(filter(tous, type="Fire"))
     print([p["name"] for p in feu[:5]])
+
     
+# Groupe Clustering
+
+def cluster(df):
+    # Normalisation
+    stats = ["hp", "attack", "defense", "sp_atk", "sp_def", "speed"]
+    scaler = StandardScaler()
+
+    # Clustering
+    kmeans = KMeans(n_clusters=4, random_state=42)
+    X = scaler.fit_transform(df[stats])
+    kmeans.fit(X)
+    labels = kmeans.predict(X)
+
+    dt_cluster = df.copy()
+    dt_cluster["cluster"] = labels
+    return dt_cluster
+
+
