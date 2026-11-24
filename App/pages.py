@@ -22,7 +22,7 @@ class HomePage(ctk.CTkFrame):
     def __init__(self, master, app):
         super().__init__(master, fg_color="transparent")
         self.app = app
-        self.filtres = list_conv(app.pokemons)    # liste actuellement affichée
+        self.filtres = list_conv(app.pokemons) # Liste affichée
         self.page = 0
         
         self.grid_columnconfigure(0, weight=1)   
@@ -60,9 +60,9 @@ class HomePage(ctk.CTkFrame):
         #self.btn_prec.configure(state="normal" if self.page > 0 else "disabled")
         #self.btn_suiv.configure(state="normal" if self.page < total - 1 else "disabled")
     
-    def appliquer_filtre(self, nom, generation, type, legendaire):
+    def appliquer_filtre(self, nom, generation, type, legendaire, groupe):
         """Fonction de trie"""
-        resultat = filter(self.app.pokemons, nom, generation, type, legendaire)
+        resultat = filter(self.app.pokemons, nom, generation, type, legendaire, groupe)
         self.filtres = list_conv(resultat)
         self.page = 0
         self.affiche_page()
@@ -131,26 +131,36 @@ class Search_frame(ctk.CTkFrame):
     """Barre de recherche de la page principale"""
     def __init__(self, master, on_search):
         super().__init__(master, fg_color= ["#DC0A2D", "#bdffff"], corner_radius=0, height=30)
-        self.grid_columnconfigure((0,1,2,3,4,5), weight=1)
+        self.grid_columnconfigure((0,1,2,3,4,5, 6), weight=1)
 
         self.on_search = on_search
 
         self.entry = ctk.CTkEntry(self, placeholder_text="Search Pokemon")
-        self.entry.grid(row=0, column=0, pady=20, padx=20, sticky="ew", columnspan=2)
+        self.entry.grid(row=1, column=0, pady=(0,10), padx=20, sticky="ew", columnspan=2)
 
         self.search_button = ctk.CTkButton(self, text="Search", command=self.search_pokemon, fg_color=["#DC0A2D","#144870"], hover_color=["#DC0A2D","#44eee6"])
-        self.search_button.grid(row=0, column=5, pady=10, sticky = 'ew')
+        self.search_button.grid(row=1, column=6, pady=(0,10), sticky = 'ew')
 
+        self.genLab = ctk.CTkLabel(self, text="Génération")
+        self.genLab.grid(row=0,column=2,pady=0,padx=10,sticky="sew")
         Generation = ["All","1", "2", "3", "4", "5", "6"]
         self.generation_filter = ctk.CTkOptionMenu(self, values=Generation)
-        self.generation_filter.grid(row=0, column=2, pady=10, padx=10,sticky="ew")
+        self.generation_filter.grid(row=1, column=2, pady=(0,10), padx=10,sticky="ew")
 
+        self.typeLab = ctk.CTkLabel(self,text="Types")
+        self.typeLab.grid(row=0,column=3,pady=0,padx=10,sticky="sew")
         Type = ["All","Normal", "Fire", "Water", "Grass", "Electric", "Ice", "Fighting", "Poison", "Ground", "Flying", "Psychic", "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy"]
         self.type_filter = ctk.CTkOptionMenu(self, values=Type)
-        self.type_filter.grid(row=0, column=3, pady=10, padx=10,sticky="ew")
+        self.type_filter.grid(row=1, column=3, pady=(0,10), padx=10,sticky="ew")
 
         self.check_leg = ctk.CTkCheckBox(self, text="Legendary")
-        self.check_leg.grid(row=0, column=4, pady=10, padx=10)
+        self.check_leg.grid(row=1, column=5, pady=(0,10), padx=10)
+
+        self.grLabel = ctk.CTkLabel(self,text="Groupe")
+        self.grLabel.grid(row=0,column=4,pady=0,padx=10,sticky="sew")
+        self.grfilter = ctk.CTkOptionMenu(self, values=["All","0","1","2","3"])
+        self.grfilter.grid(row=1, column=4, pady=(0,10), padx=10,sticky="ew")
+
 
     def search_pokemon(self):
         # Récupération données nécessaire à la recherche
@@ -158,8 +168,9 @@ class Search_frame(ctk.CTkFrame):
         generation_filter = self.generation_filter.get()
         type_filter = self.type_filter.get()
         legendary_filter = self.check_leg.get()
+        gr_filter = self.grfilter.get()
 
-        self.on_search(pokemon_name, generation_filter, type_filter, legendary_filter)
+        self.on_search(pokemon_name, generation_filter, type_filter, legendary_filter, gr_filter)
 
         # if not pokemon_name:
         #     print("Please enter a Pokemon name.")
@@ -225,6 +236,9 @@ class PokemonRow(ctk.CTkFrame):
         self.genLabel = ctk.CTkLabel(self,text="", anchor="w")
         self.genLabel.grid(row=0,column=2,padx=15, sticky="w")
 
+        self.grLabel = ctk.CTkLabel(self, text="", anchor="w")
+        self.grLabel.grid(row=0,column=3,padx=15, sticky="w")
+
         self._lier(self)
 
     def maj(self, pokemon):
@@ -245,8 +259,13 @@ class PokemonRow(ctk.CTkFrame):
             if self.badge2.cget("text") != "":
                 self.badge2.configure(text="", fg_color="transparent") # Rend invisible la badge
         gen = f"Gen {pokemon['generation']}"
+
         if self.genLabel.cget("text") != gen:
             self.genLabel.configure(text=gen)
+
+        gr = f"Gr {pokemon['cluster']}"
+        if self.grLabel.cget("text") != gr:
+                    self.grLabel.configure(text=gr)
 
     def _lier(self,widget):
         # Lier l'ensemble des éléments en une barre clickable
