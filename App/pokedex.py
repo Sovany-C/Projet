@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from pages import HomePage,InfoPage,PredictionPage,ScanPage
+from pages import HomePage,ClusterPage,PredictionPage,ScanPage
 from data import load_pokemons, cluster
 
 ctk.set_appearance_mode("dark")  # "light", "dark" or "system"
@@ -11,9 +11,12 @@ class App(ctk.CTk):
         super().__init__()
 
         self.title("POKEDEX")
+        self.geometry("1100*700")
+        self.minsize(1100, 700) 
 
         # Chargement des données dans app
         self.pokemons = load_pokemons("pokemon.csv")
+        
         self.pokemons = cluster(self.pokemons)
 
         self.main_view = MainView(self, app=self)
@@ -38,7 +41,7 @@ class MainView(ctk.CTkFrame):
         # Liste des pages
         self.pages = {
             "home" : HomePage(self, app),
-            "infos" : InfoPage(self,app),
+            "cluster" : ClusterPage(self,app),
             "prediction" : PredictionPage(self,app),
             "scan" : ScanPage(self,app)
         }
@@ -49,7 +52,7 @@ class MainView(ctk.CTkFrame):
 
         # Boutons de navigations
         self.nav_buttons = {}
-        for column, (name,text) in enumerate([("home", "Home"), ("infos", "Infos"), ("prediction","Prediction"), ("scan","Scan")]):
+        for column, (name,text) in enumerate([("home", "Home"), ("cluster", "Cluster"), ("prediction","Prediction"), ("scan","Scan")]):
             button = ctk.CTkButton(self.menubar, text=text, width=100, height=30, corner_radius=0, command=lambda o=name: self.show_page(o))
             button.grid(row=0, column=column)
             self.nav_buttons[name] = button

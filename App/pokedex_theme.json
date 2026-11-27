@@ -3,7 +3,7 @@
     "fg_color": ["gray14", "#A30620"]
   },
   "CTkToplevel": {
-    "fg_color": ["gray92", "gray14"]
+    "fg_color": ["gray92", "#25aeb4"]
   },
   "CTkFrame": {
     "corner_radius": 6,
@@ -144,12 +144,12 @@
       "weight": "normal"
     },
     "Windows": {
-      "family": "Roboto",
+      "family": "Arial",
       "size": 13,
       "weight": "normal"
     },
     "Linux": {
-      "family": "Roboto",
+      "family": "Arial",
       "size": 13,
       "weight": "normal"
     }

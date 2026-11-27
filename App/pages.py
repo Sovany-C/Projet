@@ -1,5 +1,8 @@
 import customtkinter as ctk
-from data import filter, list_conv
+from data import filter, list_conv, STATS
+from texte import CLUSTERS
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 TYPE_COLORS = {
     "Normal": "#A8A878", "Fire": "#F08030", "Water": "#6890F0", "Grass": "#78C850",
@@ -24,6 +27,7 @@ class HomePage(ctk.CTkFrame):
         self.app = app
         self.filtres = list_conv(app.pokemons) # Liste affichée
         self.page = 0
+        self.fenetre = None
         
         self.grid_columnconfigure(0, weight=1)   
         self.grid_rowconfigure(1, weight=1)
@@ -82,25 +86,82 @@ class HomePage(ctk.CTkFrame):
 
     def open_pokemon(self,pokemon):
         """Ouverture page avec informations complémentaires sur le pokémon"""
-        print(pokemon["name"])
-
+        if self.fenetre is None or not self.fenetre.winfo_exists():
+            self.fenetre = PokemonWindow(self.winfo_toplevel())
+        self.fenetre.afficher(pokemon)
 
     def on_show(self):
-        print("Home")
+        print("home")
 
-    
-# Pages à définir
-class InfoPage(ctk.CTkFrame):
+
+class ClusterPage(ctk.CTkFrame):
     def __init__(self, master, app):
         super().__init__(master, fg_color="transparent")
         self.app = app
+        self.derniere_donnee = None
 
-        self.text = ctk.CTkLabel(self, text="Infos", fg_color="#bdffff")
-        self.text.pack(fill="x")
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.text = ctk.CTkLabel(self, text="Clustering", fg_color="#bdffff")
+        self.text.grid(row=0, pady=0, padx=0, sticky="snew", columnspan=2)
+
+        self.fig = Figure(figsize=(6, 4), dpi=100, facecolor="#fefefe83")
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.zone = self.canvas.get_tk_widget()
+        self.zone.grid(row=1, column=0, pady=10,padx=10, sticky="snew")
+
+        self.droite = ctk.CTkFrame(self, fg_color="transparent")
+        self.droite.grid(row=1, column=1, sticky="nsew", padx=(10, 20), pady=15)
+
+        self.cadre_table = ctk.CTkFrame(self.droite, fg_color="transparent")
+        self.cadre_table.pack(anchor="w")
+
+        self.paragraphe = ctk.CTkLabel(self.droite, text=CLUSTERS, wraplength=420,
+                                       justify="left", anchor="w", font=("Arial", 13))
+        self.paragraphe.pack(fill="x", pady=(20, 0))
+        self.droite.bind("<Configure>",
+                         lambda e: self.paragraphe.configure(wraplength=max(200, e.width - 10)))
 
     def on_show(self):
-            print("Infos")
+        if self.app.pokemons is not self.derniere_donnee:
+            self.derniere_donnee = self.app.pokemons
+            moyennes_clusters = self.app.pokemons.groupby("cluster")[STATS].mean().round(2)
+            self.remplir_tableau(moyennes_clusters)
+            self.tracer()
 
+    def tracer(self):
+        df = self.app.pokemons
+        variance = df.attrs.get("pca_variance", [0, 0])
+    
+        self.fig.clear()
+        ax = self.fig.add_subplot(111)
+        for c in range(4):
+            sous = df[df["cluster"]==c]
+            ax.scatter(sous["pc1"],sous["pc2"],label=f"Cluster {c}")
+
+        ax.set_xlabel(f"PC1 ({variance[0] * 100:.0f} % de la variance)")
+        ax.set_ylabel(f"PC2 ({variance[1] * 100:.0f} % de la variance)")
+        ax.legend(facecolor="#fefefe83", labelcolor="black")
+
+        self.fig.tight_layout()
+        self.canvas.draw_idle()
+
+    def remplir_tableau(self, moyennes):
+        for w in self.cadre_table.winfo_children():
+            w.destroy()
+
+        ctk.CTkLabel(self.cadre_table, text="Cluster", width=60).grid(row=0,column=0,padx=2,pady=4)
+        for j, stat in enumerate(STATS, start=1):
+            ctk.CTkLabel(self.cadre_table, text=stat, width=62,).grid(row=0, column=j, padx=2, pady=4)
+
+        for i, (c, ligne) in enumerate(moyennes.iterrows(), start=1):
+            ctk.CTkLabel(self.cadre_table, text=str(c), width=60, corner_radius=6,).grid(row=i, column=0, padx=2, pady=2)
+            for j, stat in enumerate(STATS, start=1):
+                ctk.CTkLabel(self.cadre_table, text=f"{ligne[stat]:.2f}", width=62).grid(row=i, column=j, padx=2, pady=2)
+
+
+# Pages à définir
 class PredictionPage(ctk.CTkFrame):
     def __init__(self, master, app):
         super().__init__(master, fg_color="transparent")
@@ -124,6 +185,81 @@ class ScanPage(ctk.CTkFrame):
             print("Scan")
 
 
+# Fenêtre supplémentaire
+class PokemonWindow(ctk.CTkToplevel):
+    """Fiche détaillée d'un Pokémon dans une fenêtre séparée."""
+
+    STATS = [("HP", "hp"), ("Attack", "attack"), ("Defense", "defense"),
+             ("Sp. Atk", "sp_atk"), ("Sp. Def", "sp_def"), ("Speed", "speed")]
+
+    def __init__(self, master):
+        super().__init__(master)
+        self.title("Fiche Pokémon")
+        self.geometry("420x480")
+        self.resizable(False, False)
+        self.bind("<Escape>", lambda e: self.destroy())       # Échap ferme la fenêtre
+
+        self.titre = ctk.CTkLabel(self, text="", font=("Arial", 26, "bold"))
+        self.titre.pack(pady=(25, 5))
+
+        self.zone_types = ctk.CTkFrame(self, fg_color="transparent")
+        self.zone_types.pack()
+
+        self.details = ctk.CTkLabel(self, text="")
+        self.details.pack(pady=(10, 15))
+
+        # Une ligne par stat : stat, barre, valeur (créées une seule fois)
+        self.barres = {}
+        cadre = ctk.CTkFrame(self, fg_color="transparent")
+        cadre.pack(padx=30)
+        for i, (label, cle) in enumerate(self.STATS):
+            ctk.CTkLabel(cadre, text=label, width=70, anchor="w").grid(row=i, column=0, pady=5)
+            barre = ctk.CTkProgressBar(cadre, width=220, height=12)
+            barre.grid(row=i, column=1, padx=10)
+            valeur = ctk.CTkLabel(cadre, text="", width=35)
+            valeur.grid(row=i, column=2)
+            self.barres[cle] = (barre, valeur)
+
+        self.total = ctk.CTkLabel(self, text="", font=("Arial", 14, "bold"))
+        self.total.pack(pady=(20, 0))
+
+    def afficher(self, p):
+        """Remplit la fenêtre avec les données du Pokémon p (un dictionnaire)."""
+        couleur = TYPE_COLORS.get(p["type1"], "gray40")
+
+        self.titre.configure(text=p["name"])
+
+        for w in self.zone_types.winfo_children():
+            w.destroy()
+        for t in (p["type1"], p["type2"]):
+            if t:
+                badge_type(self.zone_types, t).pack(side="left", padx=3)
+
+        infos = f"Génération {p['generation']}"
+        if p["legendary"]:
+            infos += "  •  Légendaire"
+        if "cluster" in p:                                    # présent seulement après le clustering
+            infos += f"  •  Groupe {p['cluster']}"
+        self.details.configure(text=infos)
+
+        for cle, (barre, valeur) in self.barres.items():
+            barre.configure(progress_color="#83f158")           # barres de la couleur du premier type
+            barre.set(min(p[cle] / 255, 1))                       # 255 = valeur maximale d'une stat
+            valeur.configure(text=str(p[cle]))
+
+        self.total.configure(text=f"Total : {sum(p[cle] for _, cle in self.STATS)}")
+
+        self.premier_plan()
+
+    def premier_plan(self):
+        """Passe la fiche devant les autres fenêtres une seule fois, puis la laisse se comporter normalement."""
+        self.deiconify()                                      # la réaffiche si elle était réduite
+        self.lift()
+        self.attributes("-topmost", True)                     # force le premier plan...
+        self.after(300, lambda: self.attributes("-topmost", False))   # ...puis le retire
+        self.after(350, self.focus_force)                     # donne le focus clavier (Échap fonctionne)
+
+
 
 # Ensemble des sous-frames
 
@@ -139,7 +275,7 @@ class Search_frame(ctk.CTkFrame):
         self.entry.grid(row=1, column=0, pady=(0,10), padx=20, sticky="ew", columnspan=2)
 
         self.search_button = ctk.CTkButton(self, text="Search", command=self.search_pokemon, fg_color=["#DC0A2D","#144870"], hover_color=["#DC0A2D","#44eee6"])
-        self.search_button.grid(row=1, column=6, pady=(0,10), sticky = 'ew')
+        self.search_button.grid(row=1, column=6, pady=(0,10), padx=10, sticky = 'ew')
 
         self.genLab = ctk.CTkLabel(self, text="Génération")
         self.genLab.grid(row=0,column=2,pady=0,padx=10,sticky="sew")
@@ -278,4 +414,7 @@ class PokemonRow(ctk.CTkFrame):
     def _click(self,event):
         if self.on_click:
             self.on_click(self.pokemon)
+
+
+
 

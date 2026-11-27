@@ -1,8 +1,10 @@
 import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+import time
 
-
+STATS = ["hp", "attack", "defense", "sp_atk", "sp_def", "speed"]
 COLONNES = {
     "#": "id", "Name": "name", "Type 1": "type1", "Type 2": "type2",
     "HP": "hp", "Attack": "attack", "Defense": "defense",
@@ -54,17 +56,33 @@ if __name__ == "__main__":
 
 def cluster(df):
     # Normalisation
-    stats = ["hp", "attack", "defense", "sp_atk", "sp_def", "speed"]
     scaler = StandardScaler()
 
     # Clustering
+    # t0 = time.perf_counter()
     kmeans = KMeans(n_clusters=4, random_state=42)
-    X = scaler.fit_transform(df[stats])
+    X = scaler.fit_transform(df[STATS])
     kmeans.fit(X)
     labels = kmeans.predict(X)
+    # t_kmeans = time.perf_counter() - t0
+
+    # print(t_kmeans)
+
+    # Projection sur PCA
+    pca = PCA(n_components=2, random_state=42)
+    coords = pca.fit_transform(X)
 
     dt_cluster = df.copy()
     dt_cluster["cluster"] = labels
+    dt_cluster["pc1"] = coords[:,0]
+    dt_cluster["pc2"] = coords[:,1]
+
+    # Infos pour le graphique et l'interprétation, rangées dans .attrs
+    dt_cluster.attrs["pca_variance"] = pca.explained_variance_ratio_.tolist()
+    dt_cluster.attrs["pca_poids"] = {
+        stat: (float(p1), float(p2))
+        for stat, p1, p2 in zip(STATS, pca.components_[0], pca.components_[1])
+    }
     return dt_cluster
 
 
