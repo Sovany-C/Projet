@@ -1,6 +1,7 @@
 import customtkinter as ctk
-from pages import HomePage,ClusterPage,PredictionPage,ScanPage
+from pages import HomePage,ClusterPage,PredictionPage,ScanPage, PokemonWindow
 from data import load_pokemons, cluster
+
 
 ctk.set_appearance_mode("dark")  # "light", "dark" or "system"
 ctk.set_default_color_theme("App/pokedex_theme.json")  # "blue", "dark-blue", "green" or "gold"
@@ -11,7 +12,8 @@ class App(ctk.CTk):
         super().__init__()
 
         self.title("POKEDEX")
-        self.geometry("1100*700")
+        self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
+        # self.geometry("1100*700")
         self.minsize(1100, 700) 
 
         # Chargement des données dans app
@@ -19,8 +21,15 @@ class App(ctk.CTk):
         
         self.pokemons = cluster(self.pokemons)
 
+        self.fenetre = None
         self.main_view = MainView(self, app=self)
         self.main_view.pack(fill="both", expand = True)
+
+    def ouvrir_fiche(self, pokemon):
+        """Ouverture fiche pokemon"""
+        if self.fenetre is None or not self.fenetre.winfo_exists():
+            self.fenetre = PokemonWindow(self)
+        self.fenetre.afficher(pokemon)
 
         
 

@@ -5,6 +5,7 @@ from sklearn.decomposition import PCA
 import time
 
 STATS = ["hp", "attack", "defense", "sp_atk", "sp_def", "speed"]
+
 COLONNES = {
     "#": "id", "Name": "name", "Type 1": "type1", "Type 2": "type2",
     "HP": "hp", "Attack": "attack", "Defense": "defense",
