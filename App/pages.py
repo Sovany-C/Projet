@@ -4,6 +4,7 @@ from texte import CLUSTERS
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
+from prediction import predict_legendary
 
 TYPE_COLORS = {
     "Normal": "#A8A878", "Fire": "#F08030", "Water": "#6890F0", "Grass": "#78C850",
@@ -251,6 +252,9 @@ class PredictionPage(ctk.CTkFrame):
 
         self.pred_button = ctk.CTkButton(self.zone, text="Prediction", command=self.predict, fg_color=["#DC0A2D","#144870"], hover_color=["#DC0A2D","#44eee6"])
         self.pred_button.grid(row=7, column=0, pady=(0,10), padx=10, sticky = 'ew', columnspan=2)
+        self.resultat = ctk.CTkLabel(self.zone, text="")
+        self.resultat.grid(row=8, column=0, columnspan=2, pady=10)
+
         
     def stat_read(self):
         valeurs = {}
@@ -282,7 +286,14 @@ class PredictionPage(ctk.CTkFrame):
         if stats is None:                  # saisie invalide : on s'arrête, le message est affiché
             return
         print(stats)
+        resultat = predict_legendary(stats)
+        print(resultat)
         self.vider_champs()
+
+        if resultat == 1:
+            self.resultat.configure(text="Ce Pokémon est légendaire !", text_color="#83f158")
+        else:
+            self.resultat.configure(text="Ce Pokémon n'est pas légendaire.", text_color="#E74C3C")
 
     def vider_champs(self):
         for entree in self.stat_ent.values():
